@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Country Explorer",
-  description: "Mini app de países con Next.js",
+  description: "Explora países del mundo: busca por nombre, consulta su población, nombre oficial, bandera, región y capital.",
 };
 
 export default function RootLayout({
