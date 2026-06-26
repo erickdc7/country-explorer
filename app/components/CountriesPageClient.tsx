@@ -24,9 +24,8 @@ export default function CountriesPageClient() {
     // Obtiene todos los países de la API al montar el componente
     useEffect(() => {
         setLoading(true);
-        fetch(
-            "https://restcountries.com/v3.1/all?fields=name,cca3,flags,region,population,capital"
-        )
+
+        fetch("/api/countries")
             .then((res) => {
                 if (!res.ok) throw new Error("Error al obtener países");
                 return res.json();

@@ -1,0 +1,102 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import type { Country } from "@/app/types/country";
+
+const API_BASE = "https://api.restcountries.com/countries/v5";
+const RESPONSE_FIELDS = [
+  "names.common",
+  "names.official",
+  "codes.alpha_3",
+  "flag.url_png",
+  "flag.url_svg",
+  "flag.description",
+  "region",
+  "population",
+  "capitals",
+].join(",");
+
+function normalizeCountry(raw: Record<string, any>): Country {
+  const capitalData = raw.capitals;
+  const capital = Array.isArray(capitalData)
+    ? capitalData
+        .map((item) => typeof item === "object" && item !== null ? item.name : undefined)
+        .filter((value): value is string => typeof value === "string")
+    : [];
+
+  return {
+    cca3: raw.codes?.alpha_3 ?? raw.cca3 ?? "",
+    name: {
+      common: raw.names?.common ?? "",
+      official: raw.names?.official ?? undefined,
+    },
+    flags: {
+      png: raw.flag?.url_png ?? undefined,
+      svg: raw.flag?.url_svg ?? undefined,
+      alt: raw.flag?.description ?? undefined,
+    },
+    region: raw.region ?? undefined,
+    population: typeof raw.population === "number" ? raw.population : undefined,
+    capital,
+  };
+}
+
+async function fetchCountriesPage(offset: number) {
+  const url = new URL(API_BASE);
+  url.searchParams.set("limit", "100");
+  url.searchParams.set("offset", String(offset));
+  url.searchParams.set("response_fields", RESPONSE_FIELDS);
+
+  const apiKey = process.env.REST_COUNTRIES_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "Missing REST_COUNTRIES_API_KEY environment variable." },
+      { status: 500 }
+    );
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const message = body?.errors?.[0]?.message || "Error fetching countries from REST Countries API.";
+    return NextResponse.json({ error: message }, { status: response.status });
+  }
+
+  const json = await response.json();
+  return json;
+}
+
+export async function GET(req: NextRequest) {
+  const countries: Country[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const result = await fetchCountriesPage(offset);
+
+    if (result instanceof NextResponse) {
+      return result;
+    }
+
+    const objects = result?.data?.objects;
+    const meta = result?.data?.meta;
+
+    if (!Array.isArray(objects)) {
+      return NextResponse.json(
+        { error: "Invalid response shape from REST Countries API." },
+        { status: 502 }
+      );
+    }
+
+    countries.push(...objects.map((raw: Record<string, any>) => normalizeCountry(raw)));
+    hasMore = Boolean(meta?.more);
+    offset += 100;
+  }
+
+  return NextResponse.json(countries);
+}
