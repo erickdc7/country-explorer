@@ -40,15 +40,26 @@ function normalizeCountry(raw: Record<string, any>): Country {
   };
 }
 
+function filterCountriesBySearch(countries: Country[], search: string) {
+  const query = search.toLowerCase();
+
+  return countries.filter((country) => {
+    const name = country.name.common.toLowerCase();
+    const official = country.name.official?.toLowerCase() ?? "";
+    const capital = country.capital.join(" ").toLowerCase();
+    const region = country.region?.toLowerCase() ?? "";
+
+    return [name, official, capital, region].some((value) => value.includes(query));
+  });
+}
+
 async function fetchCountries(search?: string) {
   const url = new URL(API_BASE);
   url.searchParams.set("response_fields", RESPONSE_FIELDS);
+  url.searchParams.set("limit", search ? "100" : "100");
 
   if (search) {
     url.searchParams.set("q", search);
-    url.searchParams.set("limit", "100");
-  } else {
-    url.searchParams.set("limit", "20");
   }
 
   const apiKey = process.env.REST_COUNTRIES_API_KEY;
@@ -59,12 +70,41 @@ async function fetchCountries(search?: string) {
     );
   }
 
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+  };
+
   const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers,
     cache: "no-store",
   });
+
+  if (!response.ok && search) {
+    const fallbackUrl = new URL(API_BASE);
+    fallbackUrl.searchParams.set("response_fields", RESPONSE_FIELDS);
+    fallbackUrl.searchParams.set("limit", "100");
+
+    const fallbackResponse = await fetch(fallbackUrl.toString(), {
+      headers,
+      cache: "no-store",
+    });
+
+    if (!fallbackResponse.ok) {
+      return [];
+    }
+
+    const fallbackJson = await fallbackResponse.json();
+    const objects = fallbackJson?.data?.objects;
+
+    if (!Array.isArray(objects)) {
+      return [];
+    }
+
+    return filterCountriesBySearch(
+      objects.map((raw: Record<string, any>) => normalizeCountry(raw)),
+      search
+    );
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -73,7 +113,20 @@ async function fetchCountries(search?: string) {
   }
 
   const json = await response.json();
-  return json;
+
+  if (!search) {
+    return json;
+  }
+
+  const objects = json?.data?.objects;
+  if (!Array.isArray(objects)) {
+    return [];
+  }
+
+  return filterCountriesBySearch(
+    objects.map((raw: Record<string, any>) => normalizeCountry(raw)),
+    search
+  );
 }
 
 export async function GET(req: NextRequest) {
@@ -82,6 +135,10 @@ export async function GET(req: NextRequest) {
 
   if (result instanceof NextResponse) {
     return result;
+  }
+
+  if (Array.isArray(result)) {
+    return NextResponse.json(result);
   }
 
   const objects = result?.data?.objects;
