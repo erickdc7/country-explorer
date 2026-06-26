@@ -15,7 +15,7 @@ type Props = {
 export default function CountryCard({ country, onOpen }: Props) {
   const toggle = useFavorites((s) => s.toggle);
   const isFav = useFavorites((s) => s.isFavorite(country.cca3));
-  const flag = country.flags?.png || country.flags?.svg || "";
+  const flag = country.flags?.png || country.flags?.svg;
 
   const formatPopulation = (num: number) =>
     new Intl.NumberFormat("es-ES").format(num);
@@ -36,11 +36,17 @@ export default function CountryCard({ country, onOpen }: Props) {
           <div className="flex items-center gap-3">
             {/* Bandera */}
             <div className="w-16 h-12 rounded-md overflow-hidden shadow-sm flex-shrink-0 border">
-              <img
-                src={flag}
-                alt={country.flags?.alt || `Bandera de ${country.name.common}`}
-                className="w-full h-full object-cover"
-              />
+              {flag ? (
+                <img
+                  src={flag}
+                  alt={country.flags?.alt || `Bandera de ${country.name.common}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted/20 flex items-center justify-center text-[10px] text-muted-foreground">
+                  Sin bandera
+                </div>
+              )}
             </div>
             <div>
               <h3 className="mb-1 font-semibold">{country.name.common}</h3>
