@@ -18,6 +18,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => {
+              try {
+                const savedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const theme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : (prefersDark ? 'dark' : 'light');
+                document.documentElement.classList.toggle('dark', theme === 'dark');
+              } catch (e) {
+                // Ignore if localStorage or window is unavailable
+              }
+            })();`,
+          }}
+        />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <Navbar />
         <main>{children}</main>
