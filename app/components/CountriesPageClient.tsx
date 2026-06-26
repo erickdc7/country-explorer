@@ -8,6 +8,7 @@ import CountryDetailsDialog from "./CountryDetailsDialog";
 export default function CountriesPageClient() {
     const [countries, setCountries] = useState<Country[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchLoading, setSearchLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Estado de los filtros activos
@@ -23,9 +24,16 @@ export default function CountriesPageClient() {
 
     // Obtiene todos los países de la API al montar el componente
     useEffect(() => {
-        setLoading(true);
+        const searchParam = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
+        const isInitialLoad = countries.length === 0 && !search.trim();
 
-        fetch("/api/countries")
+        if (isInitialLoad) {
+            setLoading(true);
+        } else {
+            setSearchLoading(true);
+        }
+
+        fetch(`/api/countries${searchParam}`)
             .then((res) => {
                 if (!res.ok) throw new Error("Error al obtener países");
                 return res.json();
@@ -34,8 +42,14 @@ export default function CountriesPageClient() {
                 setCountries(data);
             })
             .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
-    }, []);
+            .finally(() => {
+                if (isInitialLoad) {
+                    setLoading(false);
+                } else {
+                    setSearchLoading(false);
+                }
+            });
+    }, [search]);
 
     // Extrae regiones únicas y ordenadas para el selector de filtro
     const regions = useMemo(() => {
@@ -85,7 +99,9 @@ export default function CountriesPageClient() {
         return list;
     }, [countries, search, region, minPop, maxPop, sort]);
 
-    if (loading) return <div className="p-6">Cargando países…</div>;
+    const isInitialLoading = loading && countries.length === 0;
+
+    if (isInitialLoading) return <div className="p-6">Cargando países…</div>;
     if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
 
     return (
@@ -104,6 +120,10 @@ export default function CountriesPageClient() {
                 regions={regions}
                 resultCount={filtered.length}
             />
+
+            {searchLoading && (
+                <div className="mb-4 text-sm text-muted-foreground">Buscando países…</div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filtered.map((c) => (

@@ -40,10 +40,16 @@ function normalizeCountry(raw: Record<string, any>): Country {
   };
 }
 
-async function fetchCountries() {
+async function fetchCountries(search?: string) {
   const url = new URL(API_BASE);
-  url.searchParams.set("limit", "20");
   url.searchParams.set("response_fields", RESPONSE_FIELDS);
+
+  if (search) {
+    url.searchParams.set("q", search);
+    url.searchParams.set("limit", "100");
+  } else {
+    url.searchParams.set("limit", "20");
+  }
 
   const apiKey = process.env.REST_COUNTRIES_API_KEY;
   if (!apiKey) {
@@ -71,7 +77,8 @@ async function fetchCountries() {
 }
 
 export async function GET(req: NextRequest) {
-  const result = await fetchCountries();
+  const search = req.nextUrl.searchParams.get("search")?.trim() || undefined;
+  const result = await fetchCountries(search);
 
   if (result instanceof NextResponse) {
     return result;
