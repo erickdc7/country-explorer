@@ -1,9 +1,10 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Country } from "../types/country";
 import CountryCard from "./CountryCard";
 import Filters from "./Filters";
 import CountryDetailsDialog from "./CountryDetailsDialog";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export default function CountriesPageClient() {
     const [countries, setCountries] = useState<Country[]>([]);
@@ -23,9 +24,11 @@ export default function CountriesPageClient() {
     const [dialogOpen, setDialogOpen] = useState(false);
 
     // Obtiene todos los países de la API al montar el componente
+    const initialSearchRef = useRef(true);
+
     useEffect(() => {
         const searchParam = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
-        const isInitialLoad = countries.length === 0 && !search.trim();
+        const isInitialLoad = initialSearchRef.current && !search.trim();
 
         if (isInitialLoad) {
             setLoading(true);
@@ -48,6 +51,7 @@ export default function CountriesPageClient() {
                 } else {
                     setSearchLoading(false);
                 }
+                initialSearchRef.current = false;
             });
     }, [search]);
 
@@ -101,7 +105,31 @@ export default function CountriesPageClient() {
 
     const isInitialLoading = loading && countries.length === 0;
 
-    if (isInitialLoading) return <div className="p-6">Cargando países…</div>;
+    if (isInitialLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="max-w-6xl mx-auto space-y-6 rounded-3xl bg-card p-6 shadow-sm">
+                    <div className="mx-auto max-w-xl space-y-4">
+                        <Skeleton className="h-12 rounded-full" />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <Skeleton className="h-12 rounded-2xl" />
+                            <Skeleton className="h-12 rounded-2xl" />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                        {Array.from({ length: 8 }).map((_, index) => (
+                            <div key={index} className="space-y-4 rounded-3xl border border-border bg-card p-6">
+                                <Skeleton className="h-52 rounded-3xl" />
+                                <Skeleton className="h-5 w-5/6 rounded-full" />
+                                <Skeleton className="h-4 w-2/3 rounded-full" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
     if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
 
     return (

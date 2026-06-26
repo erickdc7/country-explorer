@@ -1,7 +1,8 @@
 
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HeartOff } from "lucide-react";
+import { Skeleton } from "../../components/ui/skeleton";
 import CountryCard from "../components/CountryCard"; // 👈 usa tu card con nuevo estilo
 import { Country } from "../types/country";
 import { useFavorites } from "../stores/useFavorites";
@@ -11,11 +12,42 @@ export default function FavoritesPage() {
     const { favorites, remove, isFavorite } = useFavorites();
     const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
 
     const handleCardClick = (country: Country) => {
         setSelectedCountry(country);
         setDialogOpen(true);
     };
+
+    if (!isHydrated) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="max-w-6xl mx-auto space-y-6">
+                    <div className="text-center mb-8 space-y-4">
+                        <Skeleton className="mx-auto h-10 w-72 rounded-full" />
+                        <Skeleton className="mx-auto h-4 w-1/3 rounded-full" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                            <div
+                                key={index}
+                                className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm"
+                            >
+                                <Skeleton className="h-40 rounded-3xl" />
+                                <Skeleton className="h-5 w-2/3 rounded-full" />
+                                <Skeleton className="h-4 w-1/2 rounded-full" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -52,12 +84,12 @@ export default function FavoritesPage() {
                     </div>
                 )}
             </div>
- 
+
             <CountryDetailsDialog
                 country={selectedCountry}
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-            /> 
+            />
         </div>
     );
 }
