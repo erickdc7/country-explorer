@@ -23,6 +23,7 @@ type Props = {
     setSort: (s: string) => void;
     regions: string[];
     resultCount?: number;
+    isSearching?: boolean;
 };
 
 export default function Filters({
@@ -38,6 +39,7 @@ export default function Filters({
     setSort,
     regions,
     resultCount,
+    isSearching = false,
 }: Props) {
     return (
         <div className="space-y-6 bg-dark rounded-lg p-6">
@@ -138,7 +140,9 @@ export default function Filters({
             {/* Resultados */}
             {resultCount !== undefined && (
                 <div className="text-center text-sm text-muted-foreground pt-4">
-                    Mostrando {resultCount} {resultCount === 1 ? 'país' : 'países'}
+                    {isSearching
+                        ? "Buscando países..."
+                        : `Mostrando ${resultCount} ${resultCount === 1 ? 'país' : 'países'}`}
                 </div>
             )}
         </div>
