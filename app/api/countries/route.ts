@@ -40,10 +40,9 @@ function normalizeCountry(raw: Record<string, any>): Country {
   };
 }
 
-async function fetchCountriesPage(offset: number) {
+async function fetchCountries() {
   const url = new URL(API_BASE);
-  url.searchParams.set("limit", "100");
-  url.searchParams.set("offset", String(offset));
+  url.searchParams.set("limit", "20");
   url.searchParams.set("response_fields", RESPONSE_FIELDS);
 
   const apiKey = process.env.REST_COUNTRIES_API_KEY;
@@ -72,31 +71,22 @@ async function fetchCountriesPage(offset: number) {
 }
 
 export async function GET(req: NextRequest) {
-  const countries: Country[] = [];
-  let offset = 0;
-  let hasMore = true;
+  const result = await fetchCountries();
 
-  while (hasMore) {
-    const result = await fetchCountriesPage(offset);
-
-    if (result instanceof NextResponse) {
-      return result;
-    }
-
-    const objects = result?.data?.objects;
-    const meta = result?.data?.meta;
-
-    if (!Array.isArray(objects)) {
-      return NextResponse.json(
-        { error: "Invalid response shape from REST Countries API." },
-        { status: 502 }
-      );
-    }
-
-    countries.push(...objects.map((raw: Record<string, any>) => normalizeCountry(raw)));
-    hasMore = Boolean(meta?.more);
-    offset += 100;
+  if (result instanceof NextResponse) {
+    return result;
   }
+
+  const objects = result?.data?.objects;
+
+  if (!Array.isArray(objects)) {
+    return NextResponse.json(
+      { error: "Invalid response shape from REST Countries API." },
+      { status: 502 }
+    );
+  }
+
+  const countries = objects.map((raw: Record<string, any>) => normalizeCountry(raw));
 
   return NextResponse.json(countries);
 }
