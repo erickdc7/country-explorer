@@ -2,6 +2,25 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import type { Country } from "@/app/types/country";
 
+interface RestCountryRecord {
+  codes?: {
+    alpha_3?: string;
+  };
+  cca3?: string;
+  names?: {
+    common?: string;
+    official?: string;
+  };
+  flag?: {
+    url_png?: string;
+    url_svg?: string;
+    description?: string;
+  };
+  region?: string;
+  population?: number;
+  capitals?: Array<{ name?: string } | string>;
+}
+
 const API_BASE = "https://api.restcountries.com/countries/v5";
 const RESPONSE_FIELDS = [
   "names.common",
@@ -15,7 +34,7 @@ const RESPONSE_FIELDS = [
   "capitals",
 ].join(",");
 
-function normalizeCountry(raw: Record<string, any>): Country {
+function normalizeCountry(raw: RestCountryRecord): Country {
   const capitalData = raw.capitals;
   const capital = Array.isArray(capitalData)
     ? capitalData
@@ -46,7 +65,7 @@ function filterCountriesBySearch(countries: Country[], search: string) {
   return countries.filter((country) => {
     const name = country.name.common.toLowerCase();
     const official = country.name.official?.toLowerCase() ?? "";
-    const capital = country.capital.join(" ").toLowerCase();
+    const capital = (country.capital ?? []).join(" ").toLowerCase();
     const region = country.region?.toLowerCase() ?? "";
 
     return [name, official, capital, region].some((value) => value.includes(query));
@@ -101,7 +120,7 @@ async function fetchCountries(search?: string) {
     }
 
     return filterCountriesBySearch(
-      objects.map((raw: Record<string, any>) => normalizeCountry(raw)),
+      objects.map((raw: RestCountryRecord) => normalizeCountry(raw)),
       search
     );
   }
@@ -124,7 +143,7 @@ async function fetchCountries(search?: string) {
   }
 
   return filterCountriesBySearch(
-    objects.map((raw: Record<string, any>) => normalizeCountry(raw)),
+    objects.map((raw: RestCountryRecord) => normalizeCountry(raw)),
     search
   );
 }
@@ -150,7 +169,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const countries = objects.map((raw: Record<string, any>) => normalizeCountry(raw));
+  const countries = objects.map((raw: RestCountryRecord) => normalizeCountry(raw));
 
   return NextResponse.json(countries);
 }
